@@ -3,7 +3,7 @@ const admin = require('firebase-admin');
 const requireAdmin = require('./_auth');
 
 if (!admin.apps.length) {
-  const sa = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  const sa = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || '{}');
   admin.initializeApp({ credential: admin.credential.cert(sa) });
 }
 const db = admin.firestore();
@@ -18,7 +18,6 @@ module.exports = async (req, res) => {
       rejected: false,
       approvedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    // optional: notify student via push
     res.json({ ok:true });
   } catch (e) {
     console.error(e);

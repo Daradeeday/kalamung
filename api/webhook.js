@@ -1,6 +1,5 @@
-// api/webhook.js (Correct JS - CommonJS for Vercel)
+// api/webhook.js - robust CommonJS webhook for Vercel
 const fetch = global.fetch || require('node-fetch');
-
 let admin = null;
 let db = null;
 let firebaseInitError = null;
@@ -13,7 +12,6 @@ function safeSlice(val, len = 800) {
   } catch (e) { return ''; }
 }
 
-// Lazy init firebase to avoid cold-start crashes
 async function tryInitFirebase() {
   if (db || firebaseInitError) return;
   try {
@@ -24,13 +22,8 @@ async function tryInitFirebase() {
     try {
       sa = JSON.parse(raw);
     } catch (e) {
-      // tolerate escaped newlines
-      try {
-        const fixed = raw.replace(/\\n/g, '\n');
-        sa = JSON.parse(fixed);
-      } catch (e2) {
-        throw new Error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON: ' + e2.message);
-      }
+      const fixed = raw.replace(/\\n/g, '\n');
+      sa = JSON.parse(fixed);
     }
     if (!admin.apps.length) {
       admin.initializeApp({ credential: admin.credential.cert(sa) });
@@ -43,7 +36,7 @@ async function tryInitFirebase() {
   }
 }
 
-async function safeReply(replyToken, messages) {
+async function safeReply(replyToken, messages, fallbackUserId) {
   if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) {
     console.warn('[REPLY] missing LINE_CHANNEL_ACCESS_TOKEN');
     return;
@@ -59,14 +52,51 @@ async function safeReply(replyToken, messages) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
+    const text = await r.text().catch(()=>'<no body>');
     if (!r.ok) {
-      const txt = await r.text().catch(() => '<no body>');
-      console.error('[REPLY] non-ok', r.status, txt);
+      console.error('[REPLY] non-ok response', r.status, text);
+      if (fallbackUserId) {
+        console.log('[REPLY] attempting push fallback to', fallbackUserId);
+        const pr = await fetch('https://api.line.me/v2/bot/message/push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+          },
+          body: JSON.stringify({
+            to: fallbackUserId,
+            messages: Array.isArray(messages) ? messages : [{ type: 'text', text: String(messages) }]
+          })
+        });
+        const ptxt = await pr.text().catch(()=>'<no body>');
+        if (!pr.ok) console.error('[PUSH] non-ok', pr.status, ptxt); else console.log('[PUSH] ok');
+      }
+    } else {
+      console.log('[REPLY] ok', r.status, text.slice(0,800));
     }
   } catch (e) {
-    console.error('[REPLY] error', e && e.stack ? e.stack : e);
+    console.error('[REPLY] fetch error', e && e.stack ? e.stack : e);
+    if (fallbackUserId) {
+      try {
+        const pr = await fetch('https://api.line.me/v2/bot/message/push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+          },
+          body: JSON.stringify({
+            to: fallbackUserId,
+            messages: Array.isArray(messages) ? messages : [{ type: 'text', text: String(messages) }]
+          })
+        });
+        const ptxt = await pr.text().catch(()=>'<no body>');
+        if (!pr.ok) console.error('[PUSH] non-ok', pr.status, ptxt); else console.log('[PUSH] ok');
+      } catch (pe) {
+        console.error('[PUSH] fallback error', pe && pe.stack ? pe.stack : pe);
+      }
+    }
   }
 }
 
@@ -76,7 +106,6 @@ module.exports = async (req, res) => {
     console.log('[WEBHOOK] headers preview', safeSlice(req.headers, 800));
     console.log('[WEBHOOK] body preview', safeSlice(req.body, 3000));
 
-    // env check
     const missing = [];
     if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) missing.push('LINE_CHANNEL_ACCESS_TOKEN');
     if (!process.env.LINE_CHANNEL_SECRET) missing.push('LINE_CHANNEL_SECRET');
@@ -86,7 +115,6 @@ module.exports = async (req, res) => {
       return res.status(200).send('OK - missing env: ' + missing.join(','));
     }
 
-    // init firebase
     await tryInitFirebase();
     if (firebaseInitError || !db) {
       console.error('[WEBHOOK] firebase init failed:', firebaseInitError && firebaseInitError.stack ? firebaseInitError.stack : firebaseInitError);
@@ -110,21 +138,21 @@ module.exports = async (req, res) => {
               studentId,
               linkedAt: admin.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
-            await safeReply(ev.replyToken, `✅ ลงทะเบียนสำเร็จ: ${studentId}`);
+            await safeReply(ev.replyToken, `✅ ลงทะเบียนสำเร็จ: ${studentId}`, userId);
             continue;
           }
 
           if (/^ดูผลงาน$/i.test(txt)) {
             const q = await db.collection('works').where('studentLineId','==',userId).orderBy('uploadedAt','desc').limit(5).get();
             if (q.empty) {
-              await safeReply(ev.replyToken, 'ยังไม่มีผลงานในระบบ');
+              await safeReply(ev.replyToken, 'ยังไม่มีผลงานในระบบ', userId);
             } else {
               const items = [];
               q.forEach(d => {
                 const data = d.data();
                 items.push(`${data.title || '(ไม่มีชื่อ)'}\n${data.link}`);
               });
-              await safeReply(ev.replyToken, items.join('\n\n'));
+              await safeReply(ev.replyToken, items.join('\n\n'), userId);
             }
             continue;
           }
@@ -133,7 +161,7 @@ module.exports = async (req, res) => {
           if (url) {
             const sdoc = await db.collection('students').doc(userId).get();
             if (!sdoc.exists) {
-              await safeReply(ev.replyToken, '⚠️ กรุณาลงทะเบียนก่อนส่งลิงก์ผลงาน (พิมพ์: ลงทะเบียน <รหัส>)');
+              await safeReply(ev.replyToken, '⚠️ กรุณาลงทะเบียนก่อนส่งลิงก์ผลงาน (พิมพ์: ลงทะเบียน <รหัส>)', userId);
               continue;
             }
             const studentId = sdoc.data().studentId || null;
@@ -145,22 +173,22 @@ module.exports = async (req, res) => {
               uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
               validLink: true
             });
-            await safeReply(ev.replyToken, '✅ บันทึกผลงานเรียบร้อย');
+            await safeReply(ev.replyToken, '✅ บันทึกผลงานเรียบร้อย', userId);
             continue;
           }
 
-          await safeReply(ev.replyToken, 'ส่งรูปแบบ:\nลงทะเบียน <รหัส>\nหรือส่งลิงก์ผลงาน\nหรือพิมพ์ "ดูผลงาน"');
+          await safeReply(ev.replyToken, 'ส่งรูปแบบ:\nลงทะเบียน <รหัส>\nหรือส่งลิงก์ผลงาน\nหรือพิมพ์ \"ดูผลงาน\"', userId);
         } else {
-          await safeReply(ev.replyToken, 'โปรดส่งเป็นข้อความที่มีลิงก์หรือพิมพ์ "ดูผลงาน"');
+          await safeReply(ev.replyToken, 'โปรดส่งเป็นข้อความที่มีลิงก์หรือพิมพ์ \"ดูผลงาน\"');
         }
-      } catch (ie) {
-        console.error('[EVENT HANDLER] inner error', ie && ie.stack ? ie.stack : ie);
+      } catch (innerErr) {
+        console.error('[EVENT HANDLER] error:', innerErr && innerErr.stack ? innerErr.stack : innerErr);
       }
     }
 
     return res.status(200).send('OK');
   } catch (err) {
-    console.error('[WEBHOOK] unhandled error', err && err.stack ? err.stack : err);
+    console.error('[WEBHOOK] handler error', err && err.stack ? err.stack : err);
     return res.status(200).send('OK - error logged');
   }
 };

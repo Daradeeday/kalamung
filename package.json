@@ -1,17 +1,12 @@
 {
-  "name": "line-portfolio-frontend",
+  "name": "line-portfolio-bot-complete",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "npm --prefix frontend run build"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "vite": "^5.4.21"
+    "firebase-admin": "^11.11.0",
+    "node-fetch": "^2.6.7"
   }
 }
