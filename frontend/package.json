@@ -1,5 +1,4 @@
-# ตัวอย่างการแก้ไฟล์ package.json แบบง่าย
-cat > frontend/package.json <<'JSON'
+
 {
   "name": "line-portfolio-frontend",
   "version": "1.0.0",
@@ -17,4 +16,4 @@ cat > frontend/package.json <<'JSON'
     "vite": "^5.4.0"
   }
 }
-JSON
+
