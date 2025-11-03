@@ -26,10 +26,7 @@
       "src": "/admin",
       "dest": "/api/admin-ui"
     },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/dist/$1"
-    }
+   
   ],
-  "outputDirectory": "frontend/dist"
+
 }
