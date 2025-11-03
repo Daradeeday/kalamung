@@ -1,11 +1,17 @@
 {
-  "name": "line-worklink-bot-vercel",
+  "name": "line-portfolio-frontend",
   "version": "1.0.0",
-  "type": "commonjs",
+  "private": true,
   "scripts": {
-    "start": "vercel dev"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "firebase-admin": "^11.11.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
   }
 }
