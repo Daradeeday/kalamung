@@ -2,24 +2,34 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "builds": [
-    { "src": "api/**/*.js", "use": "@vercel/node" },
-    { "src": "frontend/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "frontend/dist"
+      }
+    }
   ],
   "routes": [
-    { "src": "/webhook", "dest": "/api/webhook" },
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-
- 
-    { "src": "/admin", "dest": "/api/admin-ui" },
-
-
-    { "src": "/index.html", "dest": "/frontend/dist/index.html" },
-    { "src": "/assets/(.*)", "dest": "/frontend/dist/assets/$1" },
-    { "src": "/favicon.ico", "dest": "/frontend/dist/favicon.ico" },
-
- 
-    { "src": "/(.*)", "dest": "/frontend/dist/$1" },
-    { "src": "/.*", "dest": "/frontend/dist/index.html" }
-  ],
-  "buildCommand": "npm --prefix frontend run build"
+    {
+      "src": "/webhook",
+      "dest": "/api/webhook"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/admin",
+      "dest": "/api/admin-ui"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
+    }
+  ]
 }

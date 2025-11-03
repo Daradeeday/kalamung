@@ -1,26 +1,28 @@
-Line Portfolio Bot - Complete package
-Files included:
-- api/webhook.js           (robust LINE webhook, connects to Firestore)
-- api/gallery.js           (public API for approved works)
-- api/admin/*              (admin endpoints: list/get/approve/reject)
-- api/admin-ui.js          (temporary admin UI served from serverless)
-- frontend/                (Vite React app: Gallery + link to admin-ui)
-- package.json (root)     (build script + server deps)
-- frontend/package.json    (frontend build)
-- vercel.json              (routes + builds configured)
+Kalamung - Complete (frontend + backend)
 
-Setup:
-1. In Vercel Project -> Settings -> Environment Variables add:
-   - GOOGLE_APPLICATION_CREDENTIALS_JSON  (stringified JSON from Firebase service account)
-   - LINE_CHANNEL_ACCESS_TOKEN
-   - LINE_CHANNEL_SECRET
-   - ADMIN_TOKEN (random secret for admin UI)
-2. Push to GitHub and connect to Vercel (or upload zip and import)
-3. Ensure Build Command is 'npm --prefix frontend run build' and Output Directory 'frontend/dist'
-4. Deploy. Admin UI is available at: https://YOUR_VERCEL_DOMAIN/api/admin-ui
-   Frontend gallery at: https://YOUR_VERCEL_DOMAIN/
-5. Test LINE webhook at /webhook endpoint.
+How to use:
+1. Install (root)
+   npm install
 
-Security notes:
-- Do NOT commit your service account file. Keep it in Vercel env only.
-- Firestore rules should restrict writes from clients. Use server admin endpoints for writes.
+2. Local frontend dev:
+   npm --prefix frontend install
+   npm --prefix frontend run dev
+
+3. Build production:
+   npm run build
+   The frontend build will output to frontend/dist
+
+4. Deploy on Vercel:
+   - Connect repo to Vercel
+   - Ensure Environment Variables are set (see below)
+   - Vercel will run build and deploy both API and frontend
+
+Environment variables required (set in Vercel project settings):
+- GOOGLE_APPLICATION_CREDENTIALS_JSON  (stringified Firebase service account JSON)
+- LINE_CHANNEL_ACCESS_TOKEN
+- LINE_CHANNEL_SECRET
+- ADMIN_TOKEN
+
+Notes:
+- Do NOT commit your service account file to git. Store it only in Vercel env.
+- After deploy, set LINE Webhook URL to: https://YOUR_DOMAIN/webhook
