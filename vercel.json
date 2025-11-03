@@ -9,15 +9,15 @@
     { "src": "/webhook", "dest": "/api/webhook" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
 
-    // admin UI endpoint
+ 
     { "src": "/admin", "dest": "/api/admin-ui" },
 
-    // serve files under frontend/dist (static)
+
     { "src": "/index.html", "dest": "/frontend/dist/index.html" },
     { "src": "/assets/(.*)", "dest": "/frontend/dist/assets/$1" },
     { "src": "/favicon.ico", "dest": "/frontend/dist/favicon.ico" },
 
-    // Try to serve exact file first, otherwise fallback to index.html (SPA)
+ 
     { "src": "/(.*)", "dest": "/frontend/dist/$1" },
     { "src": "/.*", "dest": "/frontend/dist/index.html" }
   ],
