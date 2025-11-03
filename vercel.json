@@ -1,8 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "buildCommand": "npm --prefix frontend run build",
-  "outputDirectory": "frontend/dist",
   "builds": [
     { "src": "api/**/*.js", "use": "@vercel/node" },
     { "src": "frontend/package.json", "use": "@vercel/static-build", "config": { "distDir": "frontend/dist" } }
@@ -12,5 +10,7 @@
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/admin", "dest": "/api/admin-ui" },
     { "src": "/(.*)", "dest": "/frontend/dist/$1" }
-  ]
+  ],
+  "buildCommand": "npm --prefix frontend run build",
+  "outputDirectory": "frontend/dist"
 }
