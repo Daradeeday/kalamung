@@ -9,5 +9,7 @@
       "src": "/api/gallery",
       "dest": "/api/gallery"
     }
+    { "src": "/admin/?", "dest": "/admin/index.html" },
+    { "src": "/admin/(.*)", "dest": "/admin/$1" },
   ]
 }
