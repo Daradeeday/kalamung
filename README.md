@@ -1,70 +1,56 @@
-# Getting Started with Create React App
+# LINE Work-Link Bot (Vercel)
+This project is a ready-to-deploy LINE webhook that accepts **work links** (Google Drive, YouTube, etc.)
+from students and saves them into **Firestore** as documents in `works` collection.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Features
+- Register student with `ลงทะเบียน <studentId>`
+- Save work by sending a message:
+  ```
+  ชื่อ: <project title>
+  ลิงก์: https://...
+  คำอธิบาย: <optional description>
+  ```
+- Bot validates link reachability and stores `validLink` flag in Firestore.
 
-## Available Scripts
+## Deploy on Vercel (recommended)
+1. Create a Firebase project and enable **Firestore** (Native mode).
+2. In Firebase Console -> Project Settings -> Service Accounts -> Generate new private key.
+   - Copy the JSON content and `JSON.stringify()` it (or paste as single-line).
+3. Create a Vercel project and link your Git repository (or use `vercel` CLI).
+4. Set the following Environment Variables in Vercel Project Settings:
+   - `LINE_CHANNEL_ACCESS_TOKEN` - your LINE channel access token
+   - `LINE_CHANNEL_SECRET` - your LINE channel secret
+   - `GOOGLE_APPLICATION_CREDENTIALS_JSON` - the entire service account JSON (stringified)
+5. Ensure the file `api/webhook.js` is present in the repository root (this project includes it).
+6. Deploy. After deployment, configure LINE Developer Console -> Messaging API -> Webhook URL:
+   - Set to `https://yourdomain.com/webhook` (we map `/webhook` automatically via Vercel routing)
+   - Turn **Use Webhook** ON.
 
-In the project directory, you can run:
+## Local testing with Vercel CLI
+- Install Vercel CLI: `npm i -g vercel`
+- Run: `vercel dev` and the local serverless function will be available at `http://localhost:3000/webhook`.
+- Alternatively, you can use `ngrok` to expose a local express server if you adapt the code.
 
-### `npm start`
+## Firestore structure
+Collection `students`:
+- doc id: LINE userId
+- fields: `{ studentId: string, linkedAt: timestamp }`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Collection `works`:
+- `{ studentLineId, studentId, title, link, description, uploadedAt, validLink, approved }`
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Notes & Security
+- Keep `GOOGLE_APPLICATION_CREDENTIALS_JSON` secret.
+- Use Firestore rules so clients cannot write `works` directly if you require server-side control.
+- If you prefer storing thumbnails, consider creating thumbnails in a server process and storing small data URIs.
 
-### `npm test`
+## Files included
+- `api/webhook.js` — Vercel serverless function (main webhook)
+- `.env.example` — example env variables
+- `package.json` — basic package file
+- `README.md` — this file
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Frontend gallery
+- A starter React app is included in `frontend/` that calls `/api/gallery`.
+- You can build and deploy it separately (or integrate into Vercel as a static site).
